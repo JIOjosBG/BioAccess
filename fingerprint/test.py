@@ -24,19 +24,23 @@ class sfm_v17:
         self.uart = uart
         self.touch_out = touch_out
     def register(self):
-        while touch_out.value() == 0:
-            time.sleep_ms(20)
+        #while touch_out.value() == 0:
+        #    time.sleep_ms(20)
+        self.led_white()
         #first cmd
-        self.uart.write(b'\xF5\x01\x00\x00\x01\x00\x00\xF5')
+        self.uart.write(b'\xF5\x01\x00\x00\x00\x00\x01\xF5')
         while True:
             if uart.any():
                 data = uart.read(8) # Read up to 10 bytes from UART buffer
                 print(data)
                 if checksum(data) == 0:
+                    self.led_red()
                     return -1
                 if data[1] != 1:
+                    self.led_red()
                     return -1
                 if data[4] != 0:
+                    self.led_red()
                     return -1
                 break
         #second cmd
@@ -46,10 +50,13 @@ class sfm_v17:
                 data = uart.read(8) # Read up to 10 bytes from UART buffer
                 print(data)
                 if checksum(data) == 0:
+                    self.led_red()
                     return -1
                 if data[1] != 2:
+                    self.led_red()
                     return -1
                 if data[4] != 0:
+                    self.led_red()
                     return -1
                 break
         #third cmd
@@ -59,30 +66,116 @@ class sfm_v17:
                 data = uart.read(8) # Read up to 10 bytes from UART buffer
                 print(data)
                 if checksum(data) == 0:
+                    self.led_red()
                     return -1
                 if data[4] != 0:
+                    self.led_red()
                     return -1
                 break
         #return success
+        self.led_green()
         return 0
     def verify(self):
-        while touch_out.value == 0:
-            time.sleep_ms(20)
+        #while touch_out.value() == 0:
+        #    time.sleep_ms(20)
+        self.led_white()
         self.uart.write(b'\xF5\x0C\x00\x00\x00\x00\x0C\xF5')
         while True:
             if uart.any():
                 data = uart.read(8)
                 print(data)
+                if data == b'\xF5\x0C\x00\x00\x00\x00\x0C\xF5':
+                    self.led_red()
+                    return -1
+                if checksum(data) == 0:
+                    self.led_red()
+                    return -1
+                break
+        self.led_green()
+        return 0
+    def led_red(self):
+        self.uart.write(b'\xF5\xC3\x03\x03\x96\x00\x55\xF5')
+        while True:
+            if uart.any():
+                data = uart.read(8)
                 if checksum(data) == 0:
                     return -1
                 break
         return 0
-                
+    def led_green(self):
+        self.uart.write(b'\xF5\xC3\x05\x05\x96\x00\x55\xF5')
+        while True:
+            if uart.any():
+                data = uart.read(8)
+                if checksum(data) == 0:
+                    return -1
+                break
+        return 0
+    def led_white(self):
+        self.uart.write(b'\xF5\xC3\x00\x00\x96\x00\x55\xF5')
+        while True:
+            if uart.any():
+                data = uart.read(8)
+                if checksum(data) == 0:
+                    return -1
+                break
+        return 0
+    def led_off(self):
+        self.uart.write(b'\xF5\xC3\x07\x07\x96\x00\x55\xF5')
+        while True:
+            if uart.any():
+                data = uart.read(8)
+                if checksum(data) == 0:
+                    return -1
+                break
+        return 0
+    def delete_all(self):
+        self.uart.write(b'\xF5\x05\x00\x00\x00\x00\x05\xF5')
+        while True:
+            if uart.any():
+                data = uart.read(8)
+                if checksum(data) == 0:
+                    return -1
+                if data != b'\xF5\x05\x00\x00\x00\x00\x05\xF5':
+                    return -1
+                break
+        return 0
 
-sensor = sfm_v17(uart, touch_out)
-print(sensor.verify())
 
 '''
+while True:
+    time.sleep_ms(20)
+    print(touch_out.value())
+'''
+sensor = sfm_v17(uart, touch_out)
+'''
+print(sensor.delete_all())
+
+
+while True:
+    if sensor.delete_all() == 0:
+        bre ak
+'''
+register = 0
+
+while True:
+    if register == 1:
+        print(sensor.register())
+        register = 0
+    else:
+        print('go')
+        print(sensor.verify())
+        time.sleep_ms(500)
+        sensor.led_off()
+'''
+if register == 1:
+    print(sensor.register())
+else:
+    print('go')
+    print(sensor.verify())
+time.sleep(1)
+sensor.led_off()
+
 touch_out = Pin(22, Pin.IN)
 tx_pin = Pin(0, Pin.OUT)
 rx_pin = Pin(1, Pin.IN)
